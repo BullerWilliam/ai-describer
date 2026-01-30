@@ -5,6 +5,7 @@ import cors from "cors";
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
+app.use(express.text({ limit: "2mb" }));
 
 app.get("/", (req, res) => {
     res.send("server alive");
@@ -14,7 +15,14 @@ const HF_KEY = process.env.HF_KEY;
 
 app.post("/analyze", async (req, res) => {
     try {
-        const imageUrl = req.body.imageUrl;
+        let imageUrl = null;
+
+        if (typeof req.body === "string") {
+            imageUrl = req.body;
+        } else if (req.body && req.body.imageUrl) {
+            imageUrl = req.body.imageUrl;
+        }
+
         if (!imageUrl) {
             res.json({ error: "no imageUrl" });
             return;
