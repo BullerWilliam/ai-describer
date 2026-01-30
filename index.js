@@ -17,6 +17,15 @@ app.get("/analyze", async (req, res) => {
             return;
         }
 
+        const imgRes = await fetch(imageUrl);
+        if (!imgRes.ok) {
+            res.json({ error: "failed to fetch image" });
+            return;
+        }
+
+        const buffer = Buffer.from(await imgRes.arrayBuffer());
+        const base64 = buffer.toString("base64");
+
         const r = await fetch("https://api.openai.com/v1/responses", {
             method: "POST",
             headers: {
@@ -29,8 +38,14 @@ app.get("/analyze", async (req, res) => {
                     {
                         role: "user",
                         content: [
-                            { type: "input_text", text: "Describe this image briefly and list key labels separated by commas." },
-                            { type: "input_image", image_url: imageUrl }
+                            {
+                                type: "input_text",
+                                text: "Describe this image briefly and list key labels separated by commas."
+                            },
+                            {
+                                type: "input_image",
+                                image_base64: base64
+                            }
                         ]
                     }
                 ],
