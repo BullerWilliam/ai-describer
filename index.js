@@ -6,7 +6,7 @@ const app = express();
 app.use(cors());
 
 app.get("/", (req, res) => {
-    res.send("server alive");
+    res.send("ok");
 });
 
 const HF_KEY = process.env.HF_KEY;
@@ -14,7 +14,6 @@ const HF_KEY = process.env.HF_KEY;
 app.get("/analyze", async (req, res) => {
     try {
         const imageUrl = req.query.image;
-
         if (!imageUrl) {
             res.json({ error: "no imageUrl" });
             return;
@@ -28,7 +27,7 @@ app.get("/analyze", async (req, res) => {
 
         const buffer = await img.arrayBuffer();
 
-        const hf = await fetch(
+        const r = await fetch(
             "https://api-inference.huggingface.co/models/google/vit-base-patch16-224",
             {
                 method: "POST",
@@ -40,7 +39,7 @@ app.get("/analyze", async (req, res) => {
             }
         );
 
-        const data = await hf.json();
+        const data = await r.json();
 
         if (Array.isArray(data)) {
             res.json({ labels: data.map(x => x.label) });
@@ -54,7 +53,7 @@ app.get("/analyze", async (req, res) => {
 
         res.json({ error: JSON.stringify(data) });
     } catch {
-        res.json({ error: "server crash" });
+        res.json({ error: "server error" });
     }
 });
 
