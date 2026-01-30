@@ -1,12 +1,12 @@
 import express from "express";
 import cors from "cors";
-import { InferenceClient } from "@huggingface/inference";
+import { HfInference } from "@huggingface/inference";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const client = new InferenceClient(process.env.HF_KEY);
+const hf = new HfInference(process.env.HF_KEY);
 
 app.get("/", (req, res) => {
     res.send("ok");
@@ -20,13 +20,15 @@ app.get("/analyze", async (req, res) => {
             return;
         }
 
-        const result = await client.imageClassification({
+        const result = await hf.imageClassification({
             model: "google/vit-base-patch16-224",
             data: imageUrl
         });
 
         if (Array.isArray(result)) {
-            res.json({ labels: result.map(x => x.label) });
+            res.json({
+                labels: result.map(x => x.label)
+            });
             return;
         }
 
