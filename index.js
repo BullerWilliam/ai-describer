@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
 
+console.log(process.env.IMAGGA_KEY, process.env.IMAGGA_SECRET);
+
+
 const app = express();
 app.use(cors());
 app.use(express.json());
