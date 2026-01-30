@@ -33,7 +33,8 @@ app.get("/analyze", async (req, res) => {
                             { type: "input_image", image_url: imageUrl }
                         ]
                     }
-                ]
+                ],
+                max_output_tokens: 150
             })
         });
 
@@ -41,16 +42,28 @@ app.get("/analyze", async (req, res) => {
 
         let text = "";
 
-        if (data.output && data.output[0] && data.output[0].content) {
-            for (const c of data.output[0].content) {
-                if (c.type === "output_text") {
-                    text += c.text;
+        if (Array.isArray(data.output)) {
+            for (const block of data.output) {
+                if (Array.isArray(block.content)) {
+                    for (const c of block.content) {
+                        if (typeof c.text === "string") {
+                            text += c.text + " ";
+                        }
+                    }
                 }
             }
         }
 
+        text = text.trim();
+
+        if (!text) {
+            res.json({ error: "model returned no text", raw: data });
+            return;
+        }
+
         const labels = text
             .toLowerCase()
+            .replace(/[^a-z0-9, ]/g, "")
             .split(",")
             .map(x => x.trim())
             .filter(Boolean);
