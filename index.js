@@ -41,11 +41,17 @@ app.get("/analyze", async (req, res) => {
 
         const text = await r.text();
 
+        // Detect HTML (model loading or auth issue)
+        if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
+            res.json({ loading: true });
+            return;
+        }
+
         let data;
         try {
             data = JSON.parse(text);
         } catch {
-            res.json({ error: "HF returned non-JSON: " + text.slice(0, 200) });
+            res.json({ error: "HF returned invalid JSON: " + text.slice(0,200) });
             return;
         }
 
@@ -60,6 +66,7 @@ app.get("/analyze", async (req, res) => {
         }
 
         res.json({ error: JSON.stringify(data) });
+
     } catch (e) {
         res.json({ error: "server error: " + String(e) });
     }
