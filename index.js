@@ -4,23 +4,31 @@ import cors from "cors";
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
+
+app.get("/", (req, res) => {
+    res.send("server alive");
+});
 
 const HF_KEY = process.env.HF_KEY;
 
 app.post("/analyze", async (req, res) => {
     try {
-        const { imageUrl } = req.body;
+        const imageUrl = req.body.imageUrl;
+        if (!imageUrl) {
+            res.json({ error: "no imageUrl" });
+            return;
+        }
 
         const img = await fetch(imageUrl);
         if (!img.ok) {
-            res.status(400).json({ error: "image fetch failed" });
+            res.json({ error: "image fetch failed" });
             return;
         }
 
         const buffer = await img.arrayBuffer();
 
-        const r = await fetch(
+        const hf = await fetch(
             "https://api-inference.huggingface.co/models/google/vit-base-patch16-224",
             {
                 method: "POST",
@@ -32,12 +40,10 @@ app.post("/analyze", async (req, res) => {
             }
         );
 
-        const data = await r.json();
+        const data = await hf.json();
 
         if (Array.isArray(data)) {
-            res.json({
-                labels: data.map(x => x.label)
-            });
+            res.json({ labels: data.map(x => x.label) });
             return;
         }
 
@@ -46,15 +52,10 @@ app.post("/analyze", async (req, res) => {
             return;
         }
 
-        if (data.error) {
-            res.status(500).json({ error: data.error });
-            return;
-        }
-
-        res.json({ error: "unknown response" });
+        res.json({ error: JSON.stringify(data) });
     } catch {
-        res.status(500).json({ error: "server failed" });
+        res.json({ error: "server crash" });
     }
 });
 
-app.listen(3000, () => {});
+app.listen(process.env.PORT || 3000);
