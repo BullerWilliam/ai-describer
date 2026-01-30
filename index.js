@@ -15,16 +15,24 @@ app.get("/", (req, res) => {
 app.get("/analyze", async (req, res) => {
     try {
         const imageUrl = req.query.image;
-        if (!imageUrl) return res.json({ error: "no imageUrl" });
+        if (!imageUrl) {
+            res.json({ error: "no imageUrl" });
+            return;
+        }
 
-        const result = await client.imageClassification(imageUrl);
+        const result = await client.imageClassification({
+            model: "google/vit-base-patch16-224",
+            data: imageUrl
+        });
 
-        if (Array.isArray(result))
-            return res.json({ labels: result.map(x => x.label) });
+        if (Array.isArray(result)) {
+            res.json({ labels: result.map(x => x.label) });
+            return;
+        }
 
-        return res.json({ error: "no valid result" });
+        res.json({ error: "no result" });
     } catch (e) {
-        return res.json({ error: String(e) });
+        res.json({ error: String(e) });
     }
 });
 
