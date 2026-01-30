@@ -21,7 +21,7 @@ app.get("/analyze", async (req, res) => {
         }
 
         const r = await fetch(
-            "https://api-inference.huggingface.co/models/google/vit-base-patch16-224-in21k",
+            "https://router.huggingface.co/models/google/vit-base-patch16-224-in21k",
             {
                 method: "POST",
                 headers: {
@@ -34,7 +34,7 @@ app.get("/analyze", async (req, res) => {
 
         const text = await r.text();
 
-        // If HF returns HTML, treat as loading
+        // If HF returns HTML (e.g., model still loading)
         if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
             res.json({ loading: true });
             return;
