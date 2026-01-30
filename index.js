@@ -17,20 +17,47 @@ app.get("/analyze", async (req, res) => {
             return;
         }
 
-        // Fallback: simple simulated labels
-        const fallbackLabels = ["dog", "animal", "pet", "outdoor", "cute", "grass", "fun"];
-        const fallbackDescription = "This is a sample image description";
+        const apiKey = process.env.GOOGLE_VISION_KEY;
+        if (!apiKey) {
+            res.json({ error: "missing GOOGLE_VISION_KEY" });
+            return;
+        }
+
+        const r = await fetch(
+            "https://vision.googleapis.com/v1/images:annotate?key=" + apiKey,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    requests: [
+                        {
+                            image: { source: { imageUri: imageUrl } },
+                            features: [
+                                { type: "LABEL_DETECTION", maxResults: 10 }
+                            ]
+                        }
+                    ]
+                })
+            }
+        );
+
+        const data = await r.json();
+
+        const labels =
+            data.responses?.[0]?.labelAnnotations?.map(l => l.description) || [];
+
+        if (labels.length === 0) {
+            res.json({ error: "no labels", raw: data });
+            return;
+        }
 
         res.json({
-            description: fallbackDescription,
-            labels: fallbackLabels
+            description: "Image contains: " + labels.join(", "),
+            labels
         });
-
     } catch (e) {
         res.json({ error: String(e) });
     }
 });
 
-app.listen(process.env.PORT || 3000, () => {
-    console.log("Server running on port", process.env.PORT || 3000);
-});
+app.listen(process.env.PORT || 3000);
