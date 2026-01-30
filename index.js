@@ -25,7 +25,7 @@ app.get("/analyze", async (req, res) => {
             return;
         }
 
-        const buffer = await img.arrayBuffer();
+        const buffer = await img.buffer();
 
         const r = await fetch(
             "https://api-inference.huggingface.co/models/google/vit-base-patch16-224",
@@ -35,7 +35,7 @@ app.get("/analyze", async (req, res) => {
                     "Authorization": "Bearer " + HF_KEY,
                     "Content-Type": "application/octet-stream"
                 },
-                body: Buffer.from(buffer)
+                body: buffer
             }
         );
 
@@ -52,8 +52,8 @@ app.get("/analyze", async (req, res) => {
         }
 
         res.json({ error: JSON.stringify(data) });
-    } catch {
-        res.json({ error: "server error" });
+    } catch (e) {
+        res.json({ error: String(e) });
     }
 });
 
