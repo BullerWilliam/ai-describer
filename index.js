@@ -4,7 +4,7 @@ import cors from "cors";
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "5mb" }));
 
 const HF_KEY = process.env.HF_KEY;
 
@@ -25,7 +25,20 @@ app.post("/analyze", async (req, res) => {
         );
 
         const data = await r.json();
-        res.json(data);
+
+        if (Array.isArray(data)) {
+            res.json({
+                labels: data.map(x => x.label)
+            });
+            return;
+        }
+
+        if (data.error) {
+            res.status(500).json({ error: data.error });
+            return;
+        }
+
+        res.status(202).json({ loading: true });
     } catch {
         res.status(500).json({ error: "failed" });
     }
