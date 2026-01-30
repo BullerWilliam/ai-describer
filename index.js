@@ -20,15 +20,16 @@ app.get("/analyze", async (req, res) => {
             return;
         }
 
+        const imgRes = await fetch(imageUrl);
+        const buf = new Uint8Array(await imgRes.arrayBuffer());
+
         const result = await hf.imageClassification({
             model: "google/vit-base-patch16-224",
-            data: imageUrl
+            data: buf
         });
 
         if (Array.isArray(result)) {
-            res.json({
-                labels: result.map(x => x.label)
-            });
+            res.json({ labels: result.map(x => x.label) });
             return;
         }
 
