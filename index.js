@@ -4,6 +4,7 @@ import cors from "cors";
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
 app.get("/", (req, res) => {
     res.send("ok");
@@ -19,29 +20,21 @@ app.get("/analyze", async (req, res) => {
             return;
         }
 
-        const img = await fetch(imageUrl);
-        if (!img.ok) {
-            res.json({ error: "image fetch failed" });
-            return;
-        }
-
-        const buffer = await img.buffer();
-
         const r = await fetch(
-            "https://api-inference.huggingface.co/models/google/vit-base-patch16-224",
+            "https://api-inference.huggingface.co/models/google/vit-base-patch16-224-in21k",
             {
                 method: "POST",
                 headers: {
                     "Authorization": "Bearer " + HF_KEY,
-                    "Content-Type": "application/octet-stream"
+                    "Content-Type": "application/json"
                 },
-                body: buffer
+                body: JSON.stringify({ inputs: imageUrl })
             }
         );
 
         const text = await r.text();
 
-        // Detect HTML (model loading or auth issue)
+        // If HF returns HTML, treat as loading
         if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
             res.json({ loading: true });
             return;
