@@ -27,31 +27,34 @@ app.get("/analyze", async (req, res) => {
 
         const auth = Buffer.from(`${key}:${secret}`).toString("base64");
 
-        const r = await fetch(
-            "https://api.imagga.com/v2/tags?image_url=" + encodeURIComponent(imageUrl),
-            {
-                headers: {
-                    "Authorization": "Basic " + auth
-                }
+        const url = `https://api.imagga.com/v3/tags?image_url=${encodeURIComponent(imageUrl)}&model=pro&include_caption=true`;
+
+        const r = await fetch(url, {
+            headers: {
+                "Authorization": "Basic " + auth
             }
-        );
+        });
 
         const data = await r.json();
 
-        if (!data.result || !data.result.tags || data.result.tags.length === 0) {
+        if (!data.result) {
             res.json({ error: "no tags", raw: data });
             return;
         }
 
-        const labels = data.result.tags
-            .slice(0, 10)
-            .map(t => t.tag.en);
+        // Pull labels (flat list) and caption
+        const labels = [];
+        if (Array.isArray(data.result.tags)) {
+            for (const tag of data.result.tags) {
+                if (tag.tag && tag.tag.en) labels.push(tag.tag.en);
+            }
+        }
 
-        const description = "Image contains: " + labels.join(", ");
+        const description = data.result.caption?.en || "Image analyzed";
 
         res.json({
             description,
-            labels
+            labels: labels.slice(0, 15) // top 15 tags
         });
     } catch (e) {
         res.json({ error: String(e) });
