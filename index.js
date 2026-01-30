@@ -4,7 +4,7 @@ import cors from "cors";
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "5mb" }));
+app.use(express.json());
 
 const HF_KEY = process.env.HF_KEY;
 
@@ -12,15 +12,23 @@ app.post("/analyze", async (req, res) => {
     try {
         const { imageUrl } = req.body;
 
+        const img = await fetch(imageUrl);
+        if (!img.ok) {
+            res.status(400).json({ error: "image fetch failed" });
+            return;
+        }
+
+        const buffer = await img.arrayBuffer();
+
         const r = await fetch(
             "https://api-inference.huggingface.co/models/google/vit-base-patch16-224",
             {
                 method: "POST",
                 headers: {
                     "Authorization": "Bearer " + HF_KEY,
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/octet-stream"
                 },
-                body: JSON.stringify({ inputs: imageUrl })
+                body: Buffer.from(buffer)
             }
         );
 
@@ -33,14 +41,19 @@ app.post("/analyze", async (req, res) => {
             return;
         }
 
+        if (data.estimated_time) {
+            res.json({ loading: true });
+            return;
+        }
+
         if (data.error) {
             res.status(500).json({ error: data.error });
             return;
         }
 
-        res.status(202).json({ loading: true });
+        res.json({ error: "unknown response" });
     } catch {
-        res.status(500).json({ error: "failed" });
+        res.status(500).json({ error: "server failed" });
     }
 });
 
