@@ -44,7 +44,7 @@ app.get("/analyze", async (req, res) => {
                             },
                             {
                                 type: "input_image",
-                                image_base64: base64
+                                image_url: "data:image/jpeg;base64," + base64
                             }
                         ]
                     }
