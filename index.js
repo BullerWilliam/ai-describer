@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import fetch from "node-fetch";
 
 const app = express();
 app.use(cors());
@@ -17,74 +18,34 @@ app.get("/analyze", async (req, res) => {
             return;
         }
 
-        const imgRes = await fetch(imageUrl);
-        if (!imgRes.ok) {
-            res.json({ error: "failed to fetch image" });
-            return;
-        }
+        const auth = Buffer.from(
+            process.env.IMAGGA_KEY + ":" + process.env.IMAGGA_SECRET
+        ).toString("base64");
 
-        const buffer = Buffer.from(await imgRes.arrayBuffer());
-        const base64 = buffer.toString("base64");
-
-        const r = await fetch("https://api.openai.com/v1/responses", {
-            method: "POST",
-            headers: {
-                "Authorization": "Bearer " + process.env.OPENAI_API_KEY,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: "gpt-4.1-mini",
-                input: [
-                    {
-                        role: "user",
-                        content: [
-                            {
-                                type: "input_text",
-                                text: "Describe this image briefly and list key labels separated by commas."
-                            },
-                            {
-                                type: "input_image",
-                                image_url: "data:image/jpeg;base64," + base64
-                            }
-                        ]
-                    }
-                ],
-                max_output_tokens: 150
-            })
-        });
+        const r = await fetch(
+            "https://api.imagga.com/v2/tags?image_url=" + encodeURIComponent(imageUrl),
+            {
+                headers: {
+                    "Authorization": "Basic " + auth
+                }
+            }
+        );
 
         const data = await r.json();
 
-        let text = "";
-
-        if (Array.isArray(data.output)) {
-            for (const block of data.output) {
-                if (Array.isArray(block.content)) {
-                    for (const c of block.content) {
-                        if (typeof c.text === "string") {
-                            text += c.text + " ";
-                        }
-                    }
-                }
-            }
-        }
-
-        text = text.trim();
-
-        if (!text) {
-            res.json({ error: "model returned no text", raw: data });
+        if (!data.result || !data.result.tags) {
+            res.json({ error: "no tags", raw: data });
             return;
         }
 
-        const labels = text
-            .toLowerCase()
-            .replace(/[^a-z0-9, ]/g, "")
-            .split(",")
-            .map(x => x.trim())
-            .filter(Boolean);
+        const labels = data.result.tags
+            .slice(0, 10)
+            .map(t => t.tag.en);
+
+        const description = "Image contains: " + labels.join(", ");
 
         res.json({
-            description: text,
+            description,
             labels
         });
     } catch (e) {
