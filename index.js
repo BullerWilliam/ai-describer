@@ -29,7 +29,7 @@ app.get("/analyze", async (req, res) => {
                     {
                         role: "user",
                         content: [
-                            { type: "input_text", text: "Describe this image briefly and list key labels." },
+                            { type: "input_text", text: "Describe this image briefly and list key labels separated by commas." },
                             { type: "input_image", image_url: imageUrl }
                         ]
                     }
@@ -39,11 +39,18 @@ app.get("/analyze", async (req, res) => {
 
         const data = await r.json();
 
-        const text = data.output_text || "";
+        let text = "";
+
+        if (data.output && data.output[0] && data.output[0].content) {
+            for (const c of data.output[0].content) {
+                if (c.type === "output_text") {
+                    text += c.text;
+                }
+            }
+        }
 
         const labels = text
             .toLowerCase()
-            .replace(/[^a-z0-9, ]/g, "")
             .split(",")
             .map(x => x.trim())
             .filter(Boolean);
