@@ -39,7 +39,15 @@ app.get("/analyze", async (req, res) => {
             }
         );
 
-        const data = await r.json();
+        const text = await r.text();
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch {
+            res.json({ error: "HF returned non-JSON: " + text.slice(0, 200) });
+            return;
+        }
 
         if (Array.isArray(data)) {
             res.json({ labels: data.map(x => x.label) });
@@ -53,7 +61,7 @@ app.get("/analyze", async (req, res) => {
 
         res.json({ error: JSON.stringify(data) });
     } catch (e) {
-        res.json({ error: String(e) });
+        res.json({ error: "server error: " + String(e) });
     }
 });
 
