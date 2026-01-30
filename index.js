@@ -1,9 +1,6 @@
 import express from "express";
 import cors from "cors";
 
-console.log(process.env.IMAGGA_KEY, process.env.IMAGGA_SECRET);
-
-
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -20,9 +17,15 @@ app.get("/analyze", async (req, res) => {
             return;
         }
 
-        const auth = Buffer.from(
-            process.env.IMAGGA_KEY + ":" + process.env.IMAGGA_SECRET
-        ).toString("base64");
+        const key = process.env.IMAGGA_KEY;
+        const secret = process.env.IMAGGA_SECRET;
+
+        if (!key || !secret) {
+            res.json({ error: "Missing IMAGGA_KEY or IMAGGA_SECRET in env" });
+            return;
+        }
+
+        const auth = Buffer.from(`${key}:${secret}`).toString("base64");
 
         const r = await fetch(
             "https://api.imagga.com/v2/tags?image_url=" + encodeURIComponent(imageUrl),
@@ -35,7 +38,7 @@ app.get("/analyze", async (req, res) => {
 
         const data = await r.json();
 
-        if (!data.result || !data.result.tags) {
+        if (!data.result || !data.result.tags || data.result.tags.length === 0) {
             res.json({ error: "no tags", raw: data });
             return;
         }
